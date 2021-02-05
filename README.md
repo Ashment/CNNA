@@ -1,4 +1,1 @@
-# CNNA
-# CNNA
-# CNNA
-# CNNA
+# README
