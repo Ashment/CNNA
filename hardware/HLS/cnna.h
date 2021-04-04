@@ -1,15 +1,23 @@
 #include "ap_axi_sdata.h"
 
-// General Data Types
-typedef ap_axiu<32,1,1,1> stream_type;
-typedef ap_uint<8> uint8;
-typedef ap_int<8> int8;
-
+//#define CSIM_DEBUG
 
 // NN Data Types
-typedef ap_fixed<16, 6, AP_TRN_ZERO, AP_SAT> FIX_FM;	//Fixed Point for Feature Map
-typedef ap_fixed<8, 1, AP_TRN_ZERO, AP_SAT> FIX_WT; 	//Fixed Point for Weights
+#ifdef CSIM_DEBUG
+	typedef int uint8;
+	typedef int int8;
 
+	typedef float FIX_FM;	//Fixed Point for Feature Map
+	typedef float FIX_WT; 	//Fixed Point for Weights
+#else
+	typedef ap_uint<8> uint8;
+	typedef ap_int<8> int8;
+
+	typedef ap_fixed<16, 6, AP_TRN_ZERO, AP_SAT> FIX_FM;	//Fixed Point for Feature Map
+	typedef ap_fixed<8, 1, AP_TRN_ZERO, AP_SAT> FIX_WT; 	//Fixed Point for Weights
+#endif
+
+void cnna(FIX_FM in_data[3][3][3], FIX_WT in_weights[3][3][3], FIX_FM out[3][3]);
 
 /*
 #ifdef CSIM_DEBUG
@@ -30,3 +38,4 @@ typedef ap_fixed<8, 1, AP_TRN_ZERO, AP_SAT> FIX_WT; 	//Fixed Point for Weights
 	typedef ap_fixed<32,25, AP_TRN_ZERO, AP_SAT> FIX_32_25;	//fix point
 #endif
 */
+

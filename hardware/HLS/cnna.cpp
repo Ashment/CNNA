@@ -35,10 +35,9 @@ void cnna(FIX_FM in_data[3][3][3], FIX_WT in_weights[3][3][3], FIX_FM out[3][3])
 	// Do operations
 	for(i=0; i<3; i++){
 		for(j=0; j<3; j++){
-			#pragma HLS pipeline
-			for(k=1; k<3; k++){
-				#pragma HLS unroll
-				obuf[i][j] += dbuf[i][j][k] * wbuf[i][j][k];
+			for(k=0; k<3; k++){
+				#pragma HLS pipeline
+				obuf[i][j] = obuf[i][j] + (dbuf[i][j][k] * wbuf[i][j][k]);
 			}
 		}
 	}
