@@ -1,7 +1,6 @@
 #include "ap_axi_sdata.h"
 
-//#define CSIM_DEBUG
-
+#define CSIM_DEBUG
 // NN Data Types
 #ifdef CSIM_DEBUG
 	typedef int uint8;
@@ -17,7 +16,7 @@
 	typedef ap_fixed<8, 1, AP_TRN_ZERO, AP_SAT> FIX_WT; 	//Fixed Point for Weights
 #endif
 
-void cnna(FIX_FM in_data[3][3][3], FIX_WT in_weights[3][3][3], FIX_FM out[3][3]);
+void cnna(FIX_FM in_data[3][3][3], FIX_WT in_weights[3][3][3], FIX_FM out[3]);
 
 /*
 #ifdef CSIM_DEBUG
