@@ -1,6 +1,6 @@
 #include "ap_axi_sdata.h"
 
-#define CSIM_DEBUG
+//#define CSIM_DEBUG
 // NN Data Types
 #ifdef CSIM_DEBUG
 	typedef int uint8;
