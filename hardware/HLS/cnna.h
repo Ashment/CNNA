@@ -27,5 +27,4 @@
 class CONV3X3PU;
 
 void cnna(FIX_FM in_data[3][3][3], FIX_WT in_weights[3][3][3], FIX_FM out[3]);
-void CONVDEPTH32(FIX_FM in_fm[32][3][3], FIX_WT in_wt[32][3][3], FIX_FM *out);
 void CONVL2(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], FIX_FM out_fm[32][32][32]);

@@ -2,35 +2,48 @@
 #include <string.h>
 
 void CONV3X3(FIX_FM in_fm[3][3], FIX_WT in_wt[3][3], FIX_FM *out){
-	// Simple 3x3 2D convolution
-	FIX_FM vout = 0;
+	// 3x3 2D convolution
+	FIX_FM vbuf;
+	FIX_FM vout;
 
 	for(int i=0; i<3; i++){
 		for(int j=0; j<3; j++){
-			#pragma HLS unroll factor=9
-			vout += in_fm[i][j] * in_wt[i][j];
+			#pragma HLS pipeline
+			vbuf = in_fm[i][j] * in_wt[i][j];
+			vout += vbuf;
+		}
+	}
+	*out = vout;
+	return;
+}
+
+void L2DPU(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], int anchor[3], FIX_FM *out){
+	// anchor is the corresponding output location. (ch, j, k) from parent function
+	FIX_FM d_buf[32][3][3];
+	FIX_WT w_buf[32][3][3];
+	FIX_FM vbuf[32];
+
+
+	// Fill local buffers
+	for(int i=0; i<32; i++){
+		for(int j=0; j<3; j++){
+			for(int k=0; k<3; k++){
+				#pragma HLS pipeline
+				w_buf[i][j][k] = in_wt[anchor[0]][i][j][k];
+				d_buf[i][j][k] = in_fm[i][anchor[1]+j][anchor[2]+k];
+			}
 		}
 	}
 
-	*out = vout;
-	return;
-}
-
-void CONVDEPTH32(FIX_FM in_fm[32][3][3], FIX_WT in_wt[32][3][3], FIX_FM *out){
-	// For convolution volume of 32x3x3
-	FIX_FM vout = 0;
-	FIX_FM vbuf;
-
+	// Do convolutions and write output
 	for(int i=0; i<32; i++){
-		// (i) for each depth in IFM
-		CONV3X3(in_fm[i], in_wt[i], &vbuf);
-		vout += vbuf;
+		CONV3X3(d_buf[i], w_buf[i], &vbuf[i]);
 	}
-
-	*out = vout;
-	return;
+	*out = 0;
+	for(int i=0; i<32; i++){
+		*out += vbuf[i];
+	}
 }
-
 
 void CONVL2(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], FIX_FM out_fm[32][32][32]){
 	// First CONV layer. No buffer for out_fm. Padding=1 for same padding
@@ -46,35 +59,14 @@ void CONVL2(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], FIX_FM out_fm[
 		}
 	}
 
-	// Aiming for output stationary PUs. Kinda, sorta.
-	// (ch,j,k) is output indices. Load the IFM only once for each CONV frame, all channels
-	for(int i=0; i<32; i++){
+	for(int ch=0; ch<32; ch++){
 		for(int j=1; j<31; j++){
 			for(int k=1; k<31; k++){
-				// Populate IFM buffer.
-				FIX_FM fmBuf[32][3][3];
-				for(int jj=0; jj<3; jj++){
-					for(int kk=0; kk<3; kk++){
-						#pragma HLS pipeline
-						fmBuf[i][jj][kk] = in_fm[i][j+jj-1][k+kk-1];
-					}
-				}
-
-				// populate weights for given channel and compute output
-				for(int ch=0; ch<32; ch++){
-					#pragma HLS pipeline
-					FIX_WT wtBuf[32][3][3];
-					for(int jj=0; jj<3; jj++){
-						for(int kk=0; kk<3; kk++){
-							wtBuf[i][jj][kk] = in_wt[ch][i][j+jj-1][k+kk-1];
-						}
-					}
-					CONVDEPTH32(fmBuf, wtBuf, &out_fm[ch][j][k]);
-				}
+				int cAnchor[3] = {ch, j, k};
+				L2DPU(in_fm, in_wt, cAnchor, &out_fm[ch][j][k]);
 			}
 		}
 	}
-	return;
 }
 
 void cnna(FIX_FM in_data[32][32][32], FIX_WT in_weights[32][32][3][3], FIX_FM out[32][32][32]){
@@ -82,6 +74,8 @@ void cnna(FIX_FM in_data[32][32][32], FIX_WT in_weights[32][32][3][3], FIX_FM ou
 #pragma HLS INTERFACE m_axi 		depth=32*32*3*3		offset=slave	port=in_weights		bundle=INPUT
 #pragma HLS INTERFACE m_axi			depth=32*32*32		offset=slave	port=out			bundle=OUTPUT
 #pragma HLS INTERFACE s_axilite register port=return
+
+#pragma HLS ALLOCATION function instances=CONVL2 limit=1
 
 	// Define input and output buffers
 	FIX_FM dbuf[32][32][32];
