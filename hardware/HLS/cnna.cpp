@@ -18,7 +18,9 @@ void CONV3X3(FIX_FM in_fm[3][3], FIX_WT in_wt[3][3], FIX_FM *out){
 }
 
 void L2DPU(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], int anchor[3], FIX_FM *out){
+	// Does volume convolution on one channel.
 	// anchor is the corresponding output location. (ch, j, k) from parent function
+	#pragma HLS ALLOCATION function instances=CONV3X3 limit=4
 	FIX_FM d_buf[32][3][3];
 	FIX_WT w_buf[32][3][3];
 	FIX_FM vbuf[32];
@@ -37,6 +39,7 @@ void L2DPU(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], int anchor[3], 
 
 	// Do convolutions and write output
 	for(int i=0; i<32; i++){
+		#pragma HLS unroll factor=4
 		CONV3X3(d_buf[i], w_buf[i], &vbuf[i]);
 	}
 	*out = 0;
@@ -48,7 +51,7 @@ void L2DPU(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], int anchor[3], 
 void CONVL2(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], FIX_FM out_fm[32][32][32]){
 	// First CONV layer. No buffer for out_fm. Padding=1 for same padding
 	// (32x32x32) INPUT | 32 Channels 3x3 | (32x32x32) OUTPUT
-
+	#pragma HLS ALLOCATION function instances=L2DPU limit=128
 	// Explicitly zero output buffer... (placeholder until padding is working)
 	for(int i=0; i<32; i++){
 		for(int j=0; j<32; j++){
@@ -61,6 +64,7 @@ void CONVL2(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], FIX_FM out_fm[
 
 	for(int ch=0; ch<32; ch++){
 		for(int j=1; j<31; j++){
+			#pragma HLS unroll factor=128
 			for(int k=1; k<31; k++){
 				int cAnchor[3] = {ch, j, k};
 				L2DPU(in_fm, in_wt, cAnchor, &out_fm[ch][j][k]);
@@ -75,7 +79,7 @@ void cnna(FIX_FM in_data[32][32][32], FIX_WT in_weights[32][32][3][3], FIX_FM ou
 #pragma HLS INTERFACE m_axi			depth=32*32*32		offset=slave	port=out			bundle=OUTPUT
 #pragma HLS INTERFACE s_axilite register port=return
 
-#pragma HLS ALLOCATION function instances=CONVL2 limit=1
+//#pragma HLS ALLOCATION function instances=CONVL2 limit=1
 
 	// Define input and output buffers
 	FIX_FM dbuf[32][32][32];
