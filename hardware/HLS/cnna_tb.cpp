@@ -1,8 +1,9 @@
 #include "cnna.h"
 
 void CONV3X3_t(){
-	printf("\n= = = = = = = = Testing CONV3X3 = = = = = = = =\n");
-	FIX_FM t_d[3][3] = {{1,1,1},{1,1,1},{1,1,1}};
+	printf("\n\n= = = = = Testing CONV3X3 = = = = =\n");
+
+	FIX_FM t_d[3][3] = {{1,1,1},{2,2,2},{3,3,3}};
 	FIX_WT t_w[3][3] = {{0.5, 0.5, 0.5},{0.5,0.5,0.5},{0.5,0.5,0.5}};
 	FIX_FM t_o = 0;
 
@@ -18,12 +19,14 @@ void CONV3X3_t(){
 		printf("\n");
 	}
 	CONV3X3(t_d, t_w, &t_o);
+
 	printf("OUTPUT: %.3f \n", t_o);
-	printf("\n= = = = = = = = END CONV3X3_t = = = = = = = =\n");
+	printf("\n= = = = = END CONV3X3_t = = = = =\n");
 }
 
 void L2DPU_t(){
-	printf("\n= = = = = = = = Testing L2DPU = = = = = = = =\n");
+	printf("\n\n= = = = = Testing L2DPU = = = = =\n");
+
 	FIX_FM t_d[32][32][32];
 	FIX_WT t_w[32][32][3][3];
 	int anchor[3] = {0,0,0};
@@ -33,11 +36,11 @@ void L2DPU_t(){
 	for(int i=0; i<32; i++){
 		for(int j=0; j<32; j++){
 			for(int k=0; k<32; k++){
-				t_d[i][j][k] = (k/2);
+				t_d[i][j][k] = 0.5;
 			}
 			for(int jj=0; jj<3; jj++){
 				for(int kk=0; kk<3; kk++){
-					t_w[i][j][jj][kk] = (kk/10);
+					t_w[i][j][jj][kk] = 0.5;
 				}
 			}
 		}
@@ -51,6 +54,7 @@ void L2DPU_t(){
 		}
 		printf("\n");
 	}
+
 	printf("\tWeights at depth 0:\n");
 	for(int jj=0; jj<3; jj++){
 		for(int kk=0; kk<3; kk++){
@@ -62,7 +66,7 @@ void L2DPU_t(){
 	L2DPU(t_d, t_w, anchor, &t_o);
 
 	printf("OUTPUT: %.3f \n", t_o);
-	printf("\n= = = = = = = = END L2DPU_t = = = = = = = =\n");
+	printf("\n= = = = = END L2DPU_t = = = = =\n");
 }
 
 int main() {

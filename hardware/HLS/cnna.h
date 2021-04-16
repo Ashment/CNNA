@@ -26,7 +26,7 @@
 
 class CONV3X3PU;
 
-void cnna(FIX_FM in_data[3][3][3], FIX_WT in_weights[3][3][3], FIX_FM out[3]);
+void cnna(FIX_FM in_data[32][32][32], FIX_WT in_weights[32][32][3][3], FIX_FM out[32][32][32]);
 void CONVL2(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], FIX_FM out_fm[32][32][32]);
 void L2DPU(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], int anchor[3], FIX_FM *out);
 void CONV3X3(FIX_FM in_fm[3][3], FIX_WT in_wt[3][3], FIX_FM *out);
