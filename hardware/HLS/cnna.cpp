@@ -34,6 +34,19 @@ void cnna(FIX_FM in_data[32][32][32], FIX_WT in_weights[32][32][3][3], FIX_FM ou
 		}
 	}
 
+	/*
+	// Testing
+	for(int i=0; i<32; i++){
+		for(int j=0; j<32; j++){
+			for(int k=0; k<32; k++){
+				#pragma HLS pipeline
+				obuf[i][j][k] = in_data[i][j][k];
+
+			}
+		}
+	}
+	*/
+
 	// Do CONVL2
 	CONVL2(dbuf, wbuf, obuf);
 
@@ -50,21 +63,33 @@ void cnna(FIX_FM in_data[32][32][32], FIX_WT in_weights[32][32][3][3], FIX_FM ou
 	return;
 }
 
-void CONV3X3(FIX_FM in_fm[3][3], FIX_WT in_wt[3][3], FIX_FM *out){
-	// 3x3 2D convolution
-	FIX_FM vbuf;
-	FIX_FM vout;
 
-	for(int i=0; i<3; i++){
-		for(int j=0; j<3; j++){
-			#pragma HLS pipeline
-			vbuf = in_fm[i][j] * in_wt[i][j];
-			vout += vbuf;
+void CONVL2(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], FIX_FM out_fm[32][32][32]){
+	// First CONV layer. No buffer for out_fm. Padding=1 for same padding
+	// (32x32x32) INPUT | 32 Channels 3x3 | (32x32x32) OUTPUT
+	#pragma HLS ALLOCATION function instances=L2DPU limit=32
+	// Explicitly zero output buffer... (placeholder until padding is working)
+	for(int i=0; i<32; i++){
+		for(int j=0; j<32; j++){
+			for(int k=0; k<32; k++){
+				#pragma HLS pipeline
+				out_fm[i][j][k] = 0;
+			}
 		}
 	}
-	*out = vout;
-	return;
+
+	for(int ch=0; ch<32; ch++){
+		for(int j=1; j<31; j++){
+			for(int k=1; k<31; k++){
+				#pragma HLS unroll factor=32
+				#pragma HLS pipeline
+				int cAnchor[3] = {ch, j, k};
+				L2DPU(in_fm, in_wt, cAnchor, &out_fm[ch][j][k]);
+			}
+		}
+	}
 }
+
 
 void L2DPU(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], int anchor[3], FIX_FM *out){
 	// Does volume convolution on one channel.
@@ -98,28 +123,21 @@ void L2DPU(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], int anchor[3], 
 	}
 }
 
-void CONVL2(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], FIX_FM out_fm[32][32][32]){
-	// First CONV layer. No buffer for out_fm. Padding=1 for same padding
-	// (32x32x32) INPUT | 32 Channels 3x3 | (32x32x32) OUTPUT
-	#pragma HLS ALLOCATION function instances=L2DPU limit=32
-	// Explicitly zero output buffer... (placeholder until padding is working)
-	for(int i=0; i<32; i++){
-		for(int j=0; j<32; j++){
-			for(int k=0; k<32; k++){
-				#pragma HLS pipeline
-				out_fm[i][j][k] = 0;
-			}
-		}
-	}
 
-	for(int ch=0; ch<32; ch++){
-		#pragma HLS unroll factor=32
-		for(int j=1; j<31; j++){
-			for(int k=1; k<31; k++){
-				#pragma HLS pipeline
-				int cAnchor[3] = {ch, j, k};
-				L2DPU(in_fm, in_wt, cAnchor, &out_fm[ch][j][k]);
-			}
+void CONV3X3(FIX_FM in_fm[3][3], FIX_WT in_wt[3][3], FIX_FM *out){
+	// 3x3 2D convolution
+	FIX_FM vbuf;
+	FIX_FM vout;
+
+	for(int i=0; i<3; i++){
+		for(int j=0; j<3; j++){
+			#pragma HLS pipeline
+			vbuf = in_fm[i][j] * in_wt[i][j];
+			vout += vbuf;
 		}
 	}
+	*out = vout;
+	return;
 }
+
+
