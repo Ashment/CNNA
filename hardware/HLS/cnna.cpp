@@ -127,8 +127,8 @@ void L2DPU(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], int anchor[3], 
 
 void CONV3X3(FIX_FM in_fm[3][3], FIX_WT in_wt[3][3], FIX_FM *out){
 	// 3x3 2D convolution
-	FIX_FM vbuf;
-	FIX_FM vout;
+	FIX_FM vbuf = 0;
+	FIX_FM vout = 0;
 
 	for(int i=0; i<3; i++){
 		for(int j=0; j<3; j++){
