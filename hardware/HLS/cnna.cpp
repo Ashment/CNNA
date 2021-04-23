@@ -1,9 +1,9 @@
 #include "cnna.h"
 #include <string.h>
 void cnna(FIX_FM in_data[32][32][32], FIX_WT in_weights[32][32][3][3], FIX_FM out[32][32][32]){
-#pragma HLS INTERFACE m_axi 		depth=32*32 	offset=slave	port=in_data		bundle=INPUT
-#pragma HLS INTERFACE m_axi 		depth=32*32		offset=slave	port=in_weights		bundle=INPUT
-#pragma HLS INTERFACE m_axi			depth=32*32		offset=slave	port=out			bundle=OUTPUT
+#pragma HLS INTERFACE m_axi 		depth=32*32*32 	offset=slave	port=in_data		bundle=INPUT
+#pragma HLS INTERFACE m_axi 		depth=32*32*9		offset=slave	port=in_weights		bundle=INPUT
+#pragma HLS INTERFACE m_axi			depth=32*32*32		offset=slave	port=out			bundle=OUTPUT
 #pragma HLS INTERFACE s_axilite register port=return
 
 //#pragma HLS ALLOCATION function instances=CONVL2 limit=1
@@ -83,7 +83,7 @@ void CONVL2(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], FIX_FM out_fm[
 			for(int k=1; k<31; k++){
 				#pragma HLS unroll factor=32
 				#pragma HLS pipeline
-				int cAnchor[3] = {ch, j, k};
+				int cAnchor[3] = {ch, j-1, k-1};
 				L2DPU(in_fm, in_wt, cAnchor, &out_fm[ch][j][k]);
 			}
 		}
@@ -92,12 +92,13 @@ void CONVL2(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], FIX_FM out_fm[
 
 
 void L2DPU(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], int anchor[3], FIX_FM *out){
-	// Does volume convolution on one channel.
-	// anchor is the corresponding output location. (ch, j, k) from parent function
+	// Does volume convolution on one channel. (32x3x3)
+	// anchor is the corresponding output location. (ch, j, k) from caller
 	#pragma HLS ALLOCATION function instances=CONV3X3 limit=32
 	FIX_FM d_buf[32][3][3];
 	FIX_WT w_buf[32][3][3];
 	FIX_FM vbuf[32];
+	FIX_FM obuf = 0;
 
 
 	// Fill local buffers
@@ -117,10 +118,10 @@ void L2DPU(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], int anchor[3], 
 		#pragma HLS pipeline
 		CONV3X3(d_buf[i], w_buf[i], &vbuf[i]);
 	}
-	*out = 0;
 	for(int i=0; i<32; i++){
-		*out += vbuf[i];
+		obuf += vbuf[i];
 	}
+	*out = obuf;
 }
 
 

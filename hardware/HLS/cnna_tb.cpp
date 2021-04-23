@@ -36,7 +36,7 @@ void L2DPU_t(){
 	for(int i=0; i<32; i++){
 		for(int j=0; j<32; j++){
 			for(int k=0; k<32; k++){
-				t_d[i][j][k] = 0.5;
+				t_d[i][j][k] = 0.1;
 			}
 			for(int jj=0; jj<3; jj++){
 				for(int kk=0; kk<3; kk++){
@@ -70,12 +70,12 @@ void L2DPU_t(){
 }
 
 int main() {
-	printf("> > > > > TESTING BEGIN < < < < <\n");
+	printf("\n> > > > > TESTING BEGIN < < < < <\n\n");
 
 	CONV3X3_t();
 	L2DPU_t();
 
-	printf("\n> > > > > TESTING END < < < < <\n");
+	printf("\n> > > > > TESTING END < < < < <\n\n");
 
 	return 0;
 }
