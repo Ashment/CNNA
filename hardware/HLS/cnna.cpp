@@ -1,23 +1,24 @@
 #include "cnna.h"
 #include <string.h>
-void cnna(FIX_FM in_data[3][32][32], FIX_WT wtL1[32][3][3][3], FIX_WT wtL2[32][32][3][3], FIX_FM out[32][32][32]){
-#pragma HLS INTERFACE m_axi 		depth=3*32*32 	offset=slave		port=in_data	bundle=INPUT
-#pragma HLS INTERFACE m_axi 		depth=32*9		offset=slave		port=wtL1		bundle=INPUT
-#pragma HLS INTERFACE m_axi 		depth=32*32*9		offset=slave	port=wtL2		bundle=INPUT
-#pragma HLS INTERFACE m_axi			depth=32*32*32		offset=slave	port=out		bundle=OUTPUT
+
+void cnna(FIX_FM in_data[32][32][32], FIX_WT wtL2[32][32][3][3], FIX_FM out[32][32][32]){
+#pragma HLS INTERFACE m_axi 		depth=3*32*32 		offset=slave		port=in_data	bundle=INPUT
+#pragma HLS INTERFACE m_axi 		depth=32*3*9		offset=slave		port=wtL1		bundle=INPUT
+#pragma HLS INTERFACE m_axi 		depth=32*32*9		offset=slave		port=wtL2		bundle=INPUT
+#pragma HLS INTERFACE m_axi			depth=32*32*32		offset=slave		port=out		bundle=OUTPUT
 #pragma HLS INTERFACE s_axilite register port=return
 
 //#pragma HLS ALLOCATION function instances=CONVL2 limit=1
 
 	// Define input and output buffers
-	FIX_FM dbuf[3][32][32];
-	FIX_WT wbufL1[32][3][3][3];
+	FIX_FM dbuf[32][32][32];
+	//FIX_WT wbufL1[32][3][3][3];
 	FIX_WT wbufL2[32][32][3][3];
-	FIX_FM obufL1[32][32][32];
+	//FIX_FM obufL1[32][32][32];
 	FIX_FM obufL2[32][32][32];
 
 	// Copy from AXI (DRAM) to buffers
-	for(int i=0; i<3; i++){
+	for(int i=0; i<32; i++){
 		for(int j=0; j<32; j++){
 			for(int k=0; k<32; k++){
 				#pragma HLS pipeline
@@ -27,6 +28,7 @@ void cnna(FIX_FM in_data[3][32][32], FIX_WT wtL1[32][3][3][3], FIX_WT wtL2[32][3
 		}
 	}
 	// L1 weights
+	/*
 	for(int ch=0; ch<32; ch++){
 		for(int i=0; i<3; i++){
 			for(int j=0; j<3; j++){
@@ -37,6 +39,7 @@ void cnna(FIX_FM in_data[3][32][32], FIX_WT wtL1[32][3][3][3], FIX_WT wtL2[32][3
 			}
 		}
 	}
+	*/
 	// L2 weights
 	for(int ch=0; ch<32; ch++){
 		for(int i=0; i<32; i++){
@@ -50,7 +53,7 @@ void cnna(FIX_FM in_data[3][32][32], FIX_WT wtL1[32][3][3][3], FIX_WT wtL2[32][3
 	}
 
 	// Do CONVL1, fills obufL2
-	CONVL1(dbuf, wbufL1, obufL1);
+	//CONVL1(dbuf, wbufL1, obufL1);
 
 	// Do CONVL2
 	CONVL2(dbuf, wbufL2, obufL2);
@@ -71,21 +74,31 @@ void cnna(FIX_FM in_data[3][32][32], FIX_WT wtL1[32][3][3][3], FIX_WT wtL2[32][3
 //////////////////
 // CONV LAYER 1 //
 //////////////////
-
+/*
 void CONVL1(FIX_FM in_fm[3][32][32], FIX_WT in_wt[32][3][3][3], FIX_FM out_fm[32][32][32]){
 	// CONV layer. Padding=1 for same padding
 	// (3x32x32) INPUT | 32 Channels 3x3 | (32x32x32) OUTPUT
-	#pragma HLS ALLOCATION function instances=L1DPU limit=32
+	//#pragma HLS ALLOCATION function instances=L1DPU limit=32
 
-	// Pad Input
-	// Note: This general way might not be the best way to approach padding. More specialized
-	// units to do the 2x2 would probably be faster, but might not be worth adding the extra
-	// logic that would have to be synthesized into LUTs. This may warrant further investigation.
+	FIX_WT wt_bufL1[32][3][3][3];
+	#pragma HLS ARRAY_PARTITION variable=wt_buf complete dim=1
+	for(int ch=0; ch<32; ch++){
+		for(int i=0; i<3; i++){
+			for(int j=0; j<3; j++){
+				for(int k=0; j<3; k++){
+					#pragma HLS pipeline
+					wt_bufL1[ch][i][j][k] = in_wt[ch][i][j][k];
+				}
+			}
+		}
+	}
+
+	// Buffer input FM with Padding
 	FIX_FM in_padded[3][34][34];
 	for(int ch=0; ch<3; ch++){
 		// Padding
 		for(int i=0; i<34; i++){
-			#pragma HLS pipeline
+			//#pragma HLS pipeline
 			in_padded[ch][0][i] = 0;
 			in_padded[ch][i][0] = 0;
 			in_padded[ch][33][i] = 0;
@@ -133,15 +146,17 @@ void L1DPU(FIX_FM in_fm[3][34][34], FIX_WT in_wt[32][3][3][3], int anchor[3], FI
 
 	// Do convolution and write output
 	for(int i=0; i<3; i++){
-		#pragma HLS unroll factor=32
+		//#pragma HLS unroll factor=3
 		#pragma HLS pipeline
 		CONV3X3(d_buf[i], w_buf[i], &vbuf[i]);
 	}
 	for(int i=0; i<3; i++){
+		#pragma HLS pipeline
 		obuf += vbuf[i];
 	}
-	*out = (obuf >= 0) ? obuf : 0;
+	*out = (obuf >= FIX_FM(0)) ? obuf : FIX_FM(0);
 }
+*/
 
 //////////////////
 // CONV LAYER 2 //
@@ -150,23 +165,27 @@ void L1DPU(FIX_FM in_fm[3][34][34], FIX_WT in_wt[32][3][3][3], int anchor[3], FI
 void CONVL2(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], FIX_FM out_fm[32][32][32]){
 	// CONV layer. No buffer for out_fm. Padding=1 for same padding
 	// (32x32x32) INPUT | 32 Channels 3x3 | (32x32x32) OUTPUT
-	#pragma HLS ALLOCATION function instances=L2DPU limit=32
-	// Explicitly zero output buffer... (placeholder until padding is working)
-	/*for(int i=0; i<32; i++){
-		for(int j=0; j<32; j++){
-			for(int k=0; k<32; k++){
-				#pragma HLS pipeline
-				out_fm[i][j][k] = 0;
+	//#pragma HLS ALLOCATION function instances=L2DPU limit=32
+
+	FIX_WT wt_bufL2[32][32][3][3];
+	#pragma HLS ARRAY_PARTITION variable=wt_buf complete dim=1
+	for(int ch=0; ch<32; ch++){
+		for(int i=0; i<32; i++){
+			for(int j=0; j<3; j++){
+				for(int k=0; j<3; k++){
+					#pragma HLS pipeline
+					wt_bufL2[ch][i][j][k] = in_wt[ch][i][j][k];
+				}
 			}
 		}
-	}*/
+	}
 
-	// Create padded input
+	// Buffer input FM with padding
 	FIX_FM in_padded[32][34][34];
 	for(int ch=0; ch<32; ch++){
 		// Padding
 		for(int i=0; i<34; i++){
-			#pragma HLS pipeline
+			//#pragma HLS pipeline
 			in_padded[ch][0][i] = 0;
 			in_padded[ch][i][0] = 0;
 			in_padded[ch][33][i] = 0;
@@ -185,9 +204,9 @@ void CONVL2(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], FIX_FM out_fm[
 		for(int j=0; j<32; j++){
 			for(int k=0; k<32; k++){
 				#pragma HLS unroll factor=4
-				#pragma HLS pipeline
+				//#pragma HLS pipeline
 				int cAnchor[3] = {ch, j, k};
-				L2DPU(in_padded, in_wt, cAnchor, &out_fm[ch][j][k]);
+				L2DPU(in_padded, wt_bufL2, cAnchor, &out_fm[ch][j][k]);
 			}
 		}
 	}
@@ -216,14 +235,15 @@ void L2DPU(FIX_FM in_fm[32][34][34], FIX_WT in_wt[32][32][3][3], int anchor[3], 
 
 	// Do convolutions and write output
 	for(int i=0; i<32; i++){
-		#pragma HLS unroll factor=32
-		#pragma HLS pipeline
+		//#pragma HLS unroll factor=32
+		//#pragma HLS pipeline
 		CONV3X3(d_buf[i], w_buf[i], &vbuf[i]);
 	}
 	for(int i=0; i<32; i++){
+		#pragma HLS pipeline
 		obuf += vbuf[i];
 	}
-	*out = (obuf >= 0) ? obuf : 0;
+	*out = (obuf >= FIX_FM(0)) ? obuf : FIX_FM(0);
 }
 
 void CONV3X3(FIX_FM in_fm[3][3], FIX_WT in_wt[3][3], FIX_FM *out){
