@@ -165,7 +165,7 @@ void L1DPU(FIX_FM in_fm[3][34][34], FIX_WT in_wt[32][3][3][3], int anchor[3], FI
 void CONVL2(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], FIX_FM out_fm[32][32][32]){
 	// CONV layer. No buffer for out_fm. Padding=1 for same padding
 	// (32x32x32) INPUT | 32 Channels 3x3 | (32x32x32) OUTPUT
-	#pragma HLS ALLOCATION function instances=L2DPU limit=8
+	#pragma HLS ALLOCATION function instances=L2DPU limit=32
 
 	FIX_WT wt_bufL2[32][32][3][3];
 	#pragma HLS ARRAY_PARTITION variable=wt_bufL2 complete dim=1
@@ -204,7 +204,7 @@ void CONVL2(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], FIX_FM out_fm[
 	for(int ch=0; ch<32; ch++){
 		for(int j=0; j<32; j++){
 			for(int k=0; k<32; k++){
-				#pragma HLS unroll factor=8
+				#pragma HLS unroll factor=32
 				#pragma HLS pipeline
 				int cAnchor[3] = {ch, j, k};
 				L2DPU(in_padded, wt_bufL2, cAnchor, &out_fm[ch][j][k]);
@@ -217,7 +217,7 @@ void CONVL2(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], FIX_FM out_fm[
 void L2DPU(FIX_FM in_fm[32][34][34], FIX_WT in_wt[32][32][3][3], int anchor[3], FIX_FM *out){
 	// Does volume convolution on one channel. (32x3x3)
 	// anchor is the corresponding output location. (ch, j, k) from caller
-	//#pragma HLS ALLOCATION function instances=CONV3X3 limit=32
+	#pragma HLS ALLOCATION function instances=CONV3X3 limit=32
 	FIX_FM d_buf[32][3][3];
 	#pragma HLS ARRAY_PARTITION variable=d_buf complete dim=1
 	FIX_WT w_buf[32][3][3];
