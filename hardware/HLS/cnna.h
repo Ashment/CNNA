@@ -1,6 +1,6 @@
 #include "ap_axi_sdata.h"
 
-//#define CSIM_DEBUG
+#define CSIM_DEBUG
 
 //////////////////
 //  Data Types  //
@@ -28,8 +28,8 @@ class CONV3X3PU;
 
 void cnna(FIX_FM in_data[32][32][32], FIX_WT wtL2[32][32][3][3], FIX_FM out[32][32][32]);
 
-void CONVL1(FIX_FM in_fm[3][32][32], FIX_WT in_wt[32][3][3][3], FIX_FM out_fm[32][32][32]);
-void L1DPU(FIX_FM in_fm[3][34][34], FIX_WT in_wt[32][3][3][3], int anchor[3], FIX_FM *out);
+//void CONVL1(FIX_FM in_fm[3][32][32], FIX_WT in_wt[32][3][3][3], FIX_FM out_fm[32][32][32]);
+//void L1DPU(FIX_FM in_fm[3][34][34], FIX_WT in_wt[32][3][3][3], int anchor[3], FIX_FM *out);
 
 void CONVL2(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], FIX_FM out_fm[32][32][32]);
 void L2DPU(FIX_FM in_fm[32][34][34], FIX_WT in_wt[32][32][3][3], int anchor[3], FIX_FM *out);

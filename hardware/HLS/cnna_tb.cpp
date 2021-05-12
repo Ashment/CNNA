@@ -1,5 +1,6 @@
 #include "cnna.h"
 
+/*
 void CONV3X3_t(){
 	printf("\n\n= = = = = Testing CONV3X3 = = = = =\n");
 
@@ -68,12 +69,62 @@ void L2DPU_t(){
 	printf("OUTPUT: %.3f \n", t_o);
 	printf("\n= = = = = END L2DPU_t = = = = =\n");
 }
+*/
+
+void CONVL2_t(){
+	FIX_FM t_fm[32][32][32];
+	FIX_WT t_wt[32][32][3][3];
+	FIX_FM t_o[32][32][32];
+
+	// Populate Test Data
+	for(int i=0; i<32; i++){
+		for(int j=0; j<32; j++){
+			for(int k=0; k<32; k++){
+				t_fm[i][j][k] = 0.1;
+			}
+			for(int jj=0; jj<3; jj++){
+				for(int kk=0; kk<3; kk++){
+					t_wt[i][j][jj][kk] = 0.5;
+				}
+			}
+		}
+	}
+
+	// Print input
+	printf("INPUT:\n");
+	printf("\tIFM at depth 0:\n");
+	for(int i=0; i<32; i++){
+		for(int j=0; j<32; j++){
+			printf("%.3f \t", t_fm[0][i][j]);
+		}
+		printf("\n");
+	}
+	printf("\nWt at ch 0 depth0:\n");
+	for(int i=0; i<3; i++){
+		for(int j=0; j<3; j++){
+			printf("%.3f \t", t_wt[0][0][i][j]);
+		}
+		printf("\n");
+	}
+
+	CONVL2(t_fm, t_wt, t_o);
+
+	printf("\nOUTPUT:\n");
+	printf("\tOFM at depth 0:\n");
+	for(int i=0; i<32; i++){
+		for(int j=0; j<32; j++){
+			printf("%.3f \t", t_o[0][i][j]);
+		}
+		printf("\n");
+	}
+}
 
 int main() {
 	printf("\n> > > > > TESTING BEGIN < < < < <\n\n");
 
-	CONV3X3_t();
-	L2DPU_t();
+	//CONV3X3_t();
+	//L2DPU_t();
+	CONVL2_t();
 
 	printf("\n> > > > > TESTING END < < < < <\n\n");
 
