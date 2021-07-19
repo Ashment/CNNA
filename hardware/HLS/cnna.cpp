@@ -165,7 +165,7 @@ void L1DPU(FIX_FM in_fm[3][34][34], FIX_WT in_wt[32][3][3][3], int anchor[3], FI
 void CONVL2(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], FIX_FM out_fm[32][32][32]){
 	// CONV layer. No buffer for out_fm. Padding=1 for same padding
 	// (32x32x32) INPUT | 32 Channels 3x3 | (32x32x32) OUTPUT
-	#pragma HLS ALLOCATION function instances=L2DPU limit=256
+	#pragma HLS ALLOCATION function instances=L2DPU limit=128
 
 	FIX_WT wt_bufL2[32][32][3][3];
 	#pragma HLS ARRAY_PARTITION variable=wt_bufL2 complete dim=1
@@ -203,57 +203,48 @@ void CONVL2(FIX_FM in_fm[32][32][32], FIX_WT in_wt[32][32][3][3], FIX_FM out_fm[
 
 	for(int ch=0; ch<32; ch++){
 		for(int j=0; j<32; j++){
-			#pragma HLS unroll factor=8
+			//#pragma HLS unroll factor=2
 			for(int k=0; k<32; k++){
 				//#pragma HLS loop_flatten
-				//#pragma HLS unroll factor=32
-				int cAnchor[3] = {ch, j, (k)};
-				L2DPU(in_padded, wt_bufL2, cAnchor, &out_fm[ch][j][k]);
+				#pragma HLS unroll factor=8
+				#pragma HLS pipeline
+				// Fill local buffers needed for current iteration of volume convolution
+				FIX_FM cd_buf[32][3][3];
+				#pragma HLS ARRAY_PARTITION variable=cd_buf complete dim=1
+				FIX_WT cw_buf[32][3][3];
+				#pragma HLS ARRAY_PARTITION variable=cw_buf complete dim=1
 
-				/*
-				// Testing 4DPU per innermost iteration and unrolling intermediate loop
-				int cAnchor1[3] = {ch, j, (4*k)};
-				L2DPU(in_padded, wt_bufL2, cAnchor1, &out_fm[ch][j][(4*k)]);
-				int cAnchor2[3] = {ch, j, (4*k)+1};
-				L2DPU(in_padded, wt_bufL2, cAnchor2, &out_fm[ch][j][(4*k)+1]);
-				int cAnchor3[3] = {ch, j, (4*k)+2};
-				L2DPU(in_padded, wt_bufL2, cAnchor3, &out_fm[ch][j][(4*k)+2]);
-				int cAnchor4[3] = {ch, j, (4*k)+3};
-				L2DPU(in_padded, wt_bufL2, cAnchor4, &out_fm[ch][j][(4*k)+3]);
-				*/
+				int anchor[3] = {ch, j, (k)};
+				for(int ii=0; ii<32; ii++){
+					for(int jj=0; jj<3; jj++){
+						for(int kk=0; kk<3; kk++){
+							cw_buf[ii][jj][kk] = wt_bufL2[ch][ii][jj][kk];
+							cd_buf[ii][jj][kk] = in_padded[ii][j+jj][k+kk];
+						}
+					}
+				}
+
+				// Do volume convolution with L2DPU
+				L2DPU(cd_buf, cw_buf, &out_fm[ch][j][k]);
 			}
 		}
 	}
 }
 
 
-void L2DPU(FIX_FM in_fm[32][34][34], FIX_WT in_wt[32][32][3][3], int anchor[3], FIX_FM *out){
+void L2DPU(FIX_FM in_fm[32][3][3], FIX_WT in_wt[32][3][3], FIX_FM *out){
 	// Does volume convolution on one channel. (32x3x3)
 	// anchor is the corresponding output location. (ch, j, k) from caller
 	#pragma HLS ALLOCATION function instances=CONV3X3 limit=32
-	FIX_FM d_buf[32][3][3];
-	#pragma HLS ARRAY_PARTITION variable=d_buf complete dim=1
-	FIX_WT w_buf[32][3][3];
-	#pragma HLS ARRAY_PARTITION variable=w_buf complete dim=1
+
 	FIX_FM vbuf[32];
 	#pragma HLS ARRAY_PARTITION variable=vbuf complete
 	FIX_FM obuf = 0;
 
-	// Fill local buffers
-	for(int i=0; i<32; i++){
-		for(int j=0; j<3; j++){
-			for(int k=0; k<3; k++){
-				//#pragma HLS pipeline
-				w_buf[i][j][k] = in_wt[anchor[0]][i][j][k];
-				d_buf[i][j][k] = in_fm[i][anchor[1]+j][anchor[2]+k];
-			}
-		}
-	}
-
 	// Do convolutions and write output
 	for(int i=0; i<32; i++){
-		#pragma HLS unroll factor=32
-		CONV3X3(d_buf[i], w_buf[i], &vbuf[i]);
+		#pragma HLS unroll factor=16
+		CONV3X3(in_fm[i], in_wt[i], &vbuf[i]);
 	}
 	for(int i=0; i<32; i++){
 		//#pragma HLS pipeline
